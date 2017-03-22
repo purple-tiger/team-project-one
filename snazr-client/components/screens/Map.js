@@ -34,9 +34,9 @@ export default class Map extends Component {
     // this.socket.emit('hello', '1234');
     this._setIdAndName();
     this._onRegionChange = this._onRegionChange.bind(this);
-    this._takeImage = this._takeImage.bind(this);
     this._setTargetCoords = this._setTargetCoords.bind(this);
   }
+
 
   componentWillReceiveProps(nextProps) {
     let region = {
@@ -63,17 +63,13 @@ export default class Map extends Component {
     this.setState({tarLng: longitude, tarLat: latitude});
   }
 
-  async _takeImage(e) {
+  async _takeImage(person) {
     const result = await Expo.ImagePicker.launchCameraAsync();
     if (!result.cancelled) {
-      console.log(result.uri);
       const uri = result.uri;
       const type = uri.split('.')[1];
-      let target = this.props.nearbyPeople.slice().filter(person => {return person.latPrecise === this.state.tarLat && person.lngPrecise === this.state.tarLng;});
       const id = await uuidV1();
-      console.log(target, type, id);
-      target = target.length > 0 ? target : [{ userId: this.state.id, name: this.state.name }];
-      const name = target[0].name.split('').join('-').toLowerCase() + '-' + id;
+      const name = person.name.split('').join('-').toLowerCase() + '-' + id;
       const file = {
         uri: uri,
         name: name,
@@ -83,10 +79,9 @@ export default class Map extends Component {
         if (response.status !== 201) {
           throw new Error("Failed to upload image to S3");
         } else {
-          console.log('uploaded response object', response.body.postResponse.location);
           const imageObj = {
             userId: this.state.id,
-            requestId: target[0].userId,
+            requestId: person.userId,
             cloudStorageUrl: response.body.postResponse.location
           }
           axios.post(helpers.HOST_URL + 'api/photos' , imageObj).then((response) => {
@@ -98,18 +93,10 @@ export default class Map extends Component {
   }
 
   render() {
-
     return (
       <MapView style={{flex: 1}} region={this.state.region} onRegionChange={this._onRegionChange}>
-        <Marker key={this.state.id} coordinate={{latitude: this.props.latitude, longitude: this.props.longitude}} onPress={this._setTargetCoords} onCalloutPress={this._takeImage}>
-          <Image source={{uri: `http://graph.facebook.com/${this.state.id}/picture?type=small`}} style={styles.markers} />
-            <Callout>
-              <Text style={{textAlign: 'center'}}>{this.state.name.split(' ')[0]}</Text>
-              <Icon name="camera" style={{textAlign: 'center'}} />
-            </Callout>
-        </Marker>
         {this.props.nearbyPeople.map((person, index) => {
-          return <Marker key={index} coordinate={{latitude: person.latPrecise, longitude: person.lngPrecise}} onPress={this._setTargetCoords}  onCalloutPress={this._takeImage} >
+          return <Marker key={index} coordinate={{latitude: person.latPrecise, longitude: person.lngPrecise}} onPress={this._setTargetCoords}  onCalloutPress={this._takeImage.bind(this,person)} >
                   <Image source={{uri: `http://graph.facebook.com/${person.userId}/picture?type=small`}} style={styles.markers} />
                     <Callout>
                       <Text style={{textAlign: 'center'}}>{person.name.split(' ')[0]}</Text>
