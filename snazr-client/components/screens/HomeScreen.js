@@ -296,9 +296,9 @@ export default class HomeScreen extends Component {
               {/*{this.state.showCard ? <Card><CardItem><Body><Text>{this.state.notification.data}</Text></Body></CardItem></Card> : <Text></Text> }*/}
               <View style={{flex: 1, flexDirection: 'row', flexWrap: 'wrap'}}>
                 {this.state.pictures.map((photo, index) => 
-                  <TouchableWithoutFeedback key={index} onPressIn={this._goToImg.bind(this, photo)}>
+                  <TouchableWithoutFeedback key={index} onPress={this._goToImg.bind(this, photo)} onLongPress={()=> { console.log('that was a looong press!'); this.setState({selecting: !this.state.selecting})}}>
                     <Image source={{uri: photo.cloudStorageUrl}} style={{height: Dimensions.get('window').width/3.1, width: Dimensions.get('window').width/3.1, margin: 1}}>
-                      <CheckBox checked={this._checkIfSelected(photo)} onChange={(checked) => console.log('I am checked', checked)}/>
+                      {this.state.selecting && <CheckBox checked={this._checkIfSelected(photo)} onChange={(checked) => console.log('I am checked', checked)}/>}
                     </Image>
                   </TouchableWithoutFeedback> )}
               </View>
