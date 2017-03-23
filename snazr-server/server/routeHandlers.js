@@ -97,13 +97,10 @@ const flag = {
     };
     Flag.findOne({userId: flaggedUser}, function(err, result) {
       if (err) {
-        console.log('error locating user');
+        console.log('Error locating user:', err);
       } else if (result) {
-        console.log('user found. Adding photo to users list of flagged photos.');
         let alreadyFlagged = false;
         for (let photo of result.flaggedPhotos) {
-          console.log('>>>>>>>>>>>>>>>>>>> photo: ', photo);
-          console.log('>>>>>>>>>>>>>>>>>>> flaggedPhoto: ', photo);
           if (photo.cloudStorageUrl === flaggedPhoto.cloudStorageUrl) {
             alreadyFlagged = true;
             break;
@@ -115,14 +112,11 @@ const flag = {
         }
         res.send('User and photo have been flagged');
       } else {
-        console.log('First time this user has been flagged.  Adding user and flagged photo to flag database');
         let flaggedUserToAdd = { userId: flaggedUser, flaggedPhotos: [flaggedPhoto] };
-        console.log('flagged user to add to database:', flaggedUserToAdd);
         Flag.create({ userId: flaggedUser, flaggedPhotos: [flaggedPhoto] }, (err, result) => {
           if (err) {
             console.log(err);
           } else {
-            console.log('user flag successfully added as: ', result);
             res.send('User and photo have been flagged');
           }
         });
