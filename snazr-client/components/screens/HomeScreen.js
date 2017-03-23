@@ -86,16 +86,20 @@ export default class HomeScreen extends Component {
 
   _flagPhoto() {
     console.log('Flag this photo please!!!!!!!!!!!!!!!!');
-    Alert.alert(
-      'flagged',
-      'This user and photo have been flagged for review',
-      [
-        {text: 'Block user', onPress: () => console.log('User wants to block this photographer')},
-        {text: 'Info on blocking', onPress: () => console.log('User wants to know more about blocking')},
-        {text: 'OK', onPress: () => console.log('OK Pressed')},
-      ],
-      { cancelable: false }
-    )
+    axios.post(helpers.HOST_URL + 'api/flagged_users', this.state.photo)
+      .then(response => {
+        console.log('inside axios post .then')
+        Alert.alert(
+          'flagged',
+          'This user and photo have been flagged for review',
+          [
+            {text: 'Block user', onPress: () => console.log('User wants to block this photographer')},
+            {text: 'Info on blocking', onPress: () => console.log('User wants to know more about blocking')},
+            {text: 'OK', onPress: () => console.log('OK Pressed')},
+          ],
+          { cancelable: false }
+        )
+      });
   }
 
   async _getAndSendLocationData() {
