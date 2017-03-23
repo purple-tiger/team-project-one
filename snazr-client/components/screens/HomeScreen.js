@@ -15,7 +15,10 @@ export default class HomeScreen extends Component {
       toggled: false,
       pictures: [],
       notification: {}, 
-      showCard: false
+      showCard: false,
+      // when this is set (when user touches photo), it will be a photo object:
+      // { userId, requestId, and cloudStorageUrl}
+      photo: undefined 
     }
 
     this._getInitialToggle();
@@ -77,6 +80,7 @@ export default class HomeScreen extends Component {
     }
     axios.get(helpers.HOST_URL + 'api/photos', obj )
          .then((resp) => {
+           console.log('------------------ photo:', resp.data[0].photos[0]);
            this.setState({pictures: resp.data[0].photos});
          })
          .catch((err) => {
@@ -85,7 +89,7 @@ export default class HomeScreen extends Component {
   }
 
   _flagPhoto() {
-    console.log('Flag this photo please!!!!!!!!!!!!!!!!');
+    console.log('Flag this photo please!!!!!!!!!!!!!!!!:', this.state.photo);
     axios.post(helpers.HOST_URL + 'api/flagged_users', this.state.photo)
       .then(response => {
         console.log('inside axios post .then')
@@ -99,7 +103,8 @@ export default class HomeScreen extends Component {
           ],
           { cancelable: false }
         )
-      });
+      })
+      .catch(err => console.log(err));
   }
 
   async _getAndSendLocationData() {
@@ -134,7 +139,6 @@ export default class HomeScreen extends Component {
       AsyncStorage.setItem('com.snazr.location', JSON.stringify(newLocation));
     });
   }
-
 
   async _searchAndRemoveLocationData() {
     console.log('removing');
@@ -213,7 +217,7 @@ export default class HomeScreen extends Component {
                   </Right>
               </Header>
               <Content>
-                <Image source={{uri: this.state.photo}} style={{width: Dimensions.get('window').width, height: Dimensions.get('window').height}}/>
+                <Image source={{uri: this.state.photo.cloudStorageUrl}} style={{width: Dimensions.get('window').width, height: Dimensions.get('window').height}}/>
               </Content>
               <Footer>
                   <FooterTab>
@@ -249,7 +253,7 @@ export default class HomeScreen extends Component {
             <Content>
               {/*{this.state.showCard ? <Card><CardItem><Body><Text>{this.state.notification.data}</Text></Body></CardItem></Card> : <Text></Text> }*/}
               <View style={{flex: 1, flexDirection: 'row', flexWrap: 'wrap'}}>
-                {this.state.pictures.map((photo, index) => <TouchableWithoutFeedback key={index} onPressIn={this._goToImg.bind(this, photo)}><Image source={{uri: photo}} style={{height: Dimensions.get('window').width/3.1, width: Dimensions.get('window').width/3.1, margin: 1}}/></TouchableWithoutFeedback> )}
+                {this.state.pictures.map((photo, index) => <TouchableWithoutFeedback key={index} onPressIn={this._goToImg.bind(this, photo)}><Image source={{uri: photo.cloudStorageUrl}} style={{height: Dimensions.get('window').width/3.1, width: Dimensions.get('window').width/3.1, margin: 1}}/></TouchableWithoutFeedback> )}
               </View>
             </Content>
             <Footer>

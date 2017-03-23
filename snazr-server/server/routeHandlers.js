@@ -77,7 +77,7 @@ const token = {
     });
   }
 };
-// Lindsay's TODO: 
+
 const flag = {
   get: (req, res) => {
     Flag.find((err, users) => {
@@ -98,12 +98,12 @@ const flag = {
     Flag.findOne({userId: flaggedUser}, function(err, result) {
       if (err) {
         console.log('error locating user');
-        throw err;
       } else if (result) {
         console.log('user found. Adding photo to users list of flagged photos.');
-        console.log('Resulting array of flagged photos: ', [...result.flaggedPhotos, flaggedPhoto]);
         let alreadyFlagged = false;
         for (let photo of result.flaggedPhotos) {
+          console.log('>>>>>>>>>>>>>>>>>>> photo: ', photo);
+          console.log('>>>>>>>>>>>>>>>>>>> flaggedPhoto: ', photo);
           if (photo.cloudStorageUrl === flaggedPhoto.cloudStorageUrl) {
             alreadyFlagged = true;
             break;
@@ -111,20 +111,16 @@ const flag = {
         }
         if (!alreadyFlagged) {
           result.flaggedPhotos = [...result.flaggedPhotos, flaggedPhoto];
-          result.save(err => {
-            if (err) {
-              console.log('error saving updated flaggedUser', err);
-            }
-          });
+          result.save();
         }
         res.send('User and photo have been flagged');
       } else {
         console.log('First time this user has been flagged.  Adding user and flagged photo to flag database');
         let flaggedUserToAdd = { userId: flaggedUser, flaggedPhotos: [flaggedPhoto] };
-        console.log('flaggedUsertoAdd to database:', flaggedUserToAdd);
+        console.log('flagged user to add to database:', flaggedUserToAdd);
         Flag.create({ userId: flaggedUser, flaggedPhotos: [flaggedPhoto] }, (err, result) => {
           if (err) {
-            throw err;
+            console.log(err);
           } else {
             console.log('user flag successfully added as: ', result);
             res.send('User and photo have been flagged');
@@ -195,7 +191,8 @@ const photo = {
       if (result.length > 0) {
         console.log('we have retrieved from db: ', result);
         let toSave = result[0];
-        let stringToken, objToken;
+        let stringToken;
+        let objToken;
         if (toSave.pushToken) {
           stringToken = toSave.pushToken;
           objToken = JSON.parse(stringToken);         
@@ -208,8 +205,7 @@ const photo = {
         }
         console.log('our token is: ', Token);
         let photos = [...toSave.photos];
-        toSave.photos = [ cloudStorageUrl, ...photos ];
-
+        toSave.photos = [ { userId, requestId, cloudStorageUrl }, ...photos ];
         toSave.save()
                 .then(function(result) {
                   console.log('1: saved photos successfully');
@@ -226,7 +222,7 @@ const photo = {
                 res.send('photo did not save, err!');
               });
       } else {
-        let photos = [ cloudStorageUrl ];
+        let photos = [ { userId, requestId, cloudStorageUrl } ];
         let toSave = new User({
           userId: requestId,
           pushToken: '',
@@ -246,7 +242,8 @@ const photo = {
     });
   },
   delete: (req, res) => {
-    let { userId, photo } = req.body;
+    // photoObj: { userId, requestId, cloudStorageUrl }
+    let { userId, photoObj } = req.body;
     let model = {
       userId
     };
@@ -255,11 +252,11 @@ const photo = {
       if (result.length > 0) {
         let item = result[0];
         let { photos } = item;
-        let ind = photos.indexOf(photo);
         let removed;
-        console.log('photos list: ', photos);
-        if (ind >= 0) {
-          removed = photos.splice(ind, 1);
+        for (let i = 0; i < photos.length; i++) {
+          if (photos[i].cloudStorageUrl === photoObj.cloudStorageUrl) {
+            removed = photos.splice(i, 1);
+          }
         }
         console.log('we removed photo: ', removed);
         item.save()
