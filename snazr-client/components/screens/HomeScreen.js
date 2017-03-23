@@ -6,6 +6,8 @@ import Expo from 'expo';
 import axios from 'axios';
 import helpers from '../config/util';
 import registerForPushNotificationsAsync from '../config/getToken';
+import CheckBox from 'react-native-checkbox';
+
 // import RNFetchBlob from 'react-native-fetch-blob';
 
 export default class HomeScreen extends Component {
@@ -18,7 +20,9 @@ export default class HomeScreen extends Component {
       showCard: false,
       // when this is set (when user touches photo), it will be a photo object:
       // { userId, requestId, and cloudStorageUrl}
-      photo: undefined 
+      photo: undefined,
+      selecting: false,
+      selected: [] 
     }
 
     this._getInitialToggle();
@@ -27,6 +31,7 @@ export default class HomeScreen extends Component {
     this._goToMap = this._goToMap.bind(this);
     this._done = this._done.bind(this);
     this._deletePhoto = this._deletePhoto.bind(this);
+    this._checkIfSelected = this._checkIfSelected.bind(this);
     this._flagPhoto = this._flagPhoto.bind(this);
     this._downloadPhoto = this._downloadPhoto.bind(this);
     // this._handleNotification = this._handleNotification.bind(this);
@@ -81,13 +86,20 @@ export default class HomeScreen extends Component {
     axios.get(helpers.HOST_URL + 'api/photos', obj )
          .then((resp) => {
            console.log('------------------ photo:', resp.data[0].photos[0]);
-           this.setState({pictures: resp.data[0].photos});
+           this.setState({pictures: resp.data[0].photos}, (err) => {
+             if (err) {
+               console.log('error getting pictures:', err)
+             } else {
+               console.log('pictures state set:', this.state.pictures);
+             }
+            });
          })
          .catch((err) => {
            console.log(err);
          });
   }
 
+// TODO: Implement blocking backability and uncomment out those options.
   _flagPhoto() {
     console.log('Flag this photo please!!!!!!!!!!!!!!!!:', this.state.photo);
     axios.post(helpers.HOST_URL + 'api/flagged_users', this.state.photo)
@@ -97,8 +109,8 @@ export default class HomeScreen extends Component {
           'flagged',
           'This user and photo have been flagged for review',
           [
-            {text: 'Block user', onPress: () => console.log('User wants to block this photographer')},
-            {text: 'Info on blocking', onPress: () => console.log('User wants to know more about blocking')},
+            // {text: 'Block user', onPress: () => console.log('User wants to block this photographer')},
+            // {text: 'Info on blocking', onPress: () => console.log('User wants to know more about blocking')},
             {text: 'OK', onPress: () => console.log('OK Pressed')},
           ],
           { cancelable: false }
@@ -162,10 +174,40 @@ export default class HomeScreen extends Component {
     this.props.navigator.push(Router.getRoute('settings'));
   }
 
+// This is very slow. Should be refactored.
+  _toggleSelect(photo) {
+    let removed;
+    for (let i = 0; i < this.state.selected.length; i++) {
+      if (this.state.selected[i].cloudStorageUrl === photo.cloudStorageUrl) {
+        let original = this.state.selected;
+        this.setState({selected: [...original.slice(0,i), ...original.slice(i+1)]});
+        removed = true;
+        break;
+      }
+    }
+    if (!removed) {
+      this.setState({selected: [...this.state.selected, photo]});
+    }
+  }
+
+  _checkIfSelected(photo) {
+    let selected = false;
+    for(let i = 0; i < this.state.selected.length; i++) {
+      if(this.state.selected[i].cloudStorageUrl === photo.cloudStorageUrl) {
+        selected = true;
+        break;
+      }
+    }
+    console.log('photo is currently selected: ', selected);
+    return selected;
+  }
+
   _goToImg(photo) {
-    // console.log('hiii', photo);
-    this.setState({photo: photo});
-    // console.log('other is', e._targetInst._currentElement)
+    if (this.state.selecting) {
+      this._toggleSelect(photo);
+    } else {
+      this.setState({photo: photo});
+    }
   }
 
   _refresh() {
@@ -253,7 +295,12 @@ export default class HomeScreen extends Component {
             <Content>
               {/*{this.state.showCard ? <Card><CardItem><Body><Text>{this.state.notification.data}</Text></Body></CardItem></Card> : <Text></Text> }*/}
               <View style={{flex: 1, flexDirection: 'row', flexWrap: 'wrap'}}>
-                {this.state.pictures.map((photo, index) => <TouchableWithoutFeedback key={index} onPressIn={this._goToImg.bind(this, photo)}><Image source={{uri: photo.cloudStorageUrl}} style={{height: Dimensions.get('window').width/3.1, width: Dimensions.get('window').width/3.1, margin: 1}}/></TouchableWithoutFeedback> )}
+                {this.state.pictures.map((photo, index) => 
+                  <TouchableWithoutFeedback key={index} onPressIn={this._goToImg.bind(this, photo)}>
+                    <Image source={{uri: photo.cloudStorageUrl}} style={{height: Dimensions.get('window').width/3.1, width: Dimensions.get('window').width/3.1, margin: 1}}>
+                      <CheckBox checked={this._checkIfSelected(photo)} onChange={(checked) => console.log('I am checked', checked)}/>
+                    </Image>
+                  </TouchableWithoutFeedback> )}
               </View>
             </Content>
             <Footer>
