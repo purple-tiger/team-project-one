@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { View, Switch, AsyncStorage, Image, Dimensions, TouchableWithoutFeedback, DeviceEventEmitter, AppRegistry } from 'react-native';
+import { Alert, View, Switch, AsyncStorage, Image, Dimensions, TouchableWithoutFeedback, DeviceEventEmitter, AppRegistry } from 'react-native';
 import Router from '../navigation/Router';
 import { Container, Header, Title, Content, Footer, FooterTab, Button, Left, Right, Body, Icon , Text, ListItem, Card, CardItem } from 'native-base';
 import Expo from 'expo';
@@ -24,6 +24,7 @@ export default class HomeScreen extends Component {
     this._goToMap = this._goToMap.bind(this);
     this._done = this._done.bind(this);
     this._deletePhoto = this._deletePhoto.bind(this);
+    this._flagPhoto = this._flagPhoto.bind(this);
     this._downloadPhoto = this._downloadPhoto.bind(this);
     // this._handleNotification = this._handleNotification.bind(this);
     this._goToSettings = this._goToSettings.bind(this);
@@ -81,6 +82,20 @@ export default class HomeScreen extends Component {
          .catch((err) => {
            console.log(err);
          });
+  }
+
+  _flagPhoto() {
+    console.log('Flag this photo please!!!!!!!!!!!!!!!!');
+    Alert.alert(
+      'flagged',
+      'This user and photo have been flagged for review',
+      [
+        {text: 'Block user', onPress: () => console.log('User wants to block this photographer')},
+        {text: 'Info on blocking', onPress: () => console.log('User wants to know more about blocking')},
+        {text: 'OK', onPress: () => console.log('OK Pressed')},
+      ],
+      { cancelable: false }
+    )
   }
 
   async _getAndSendLocationData() {
@@ -203,6 +218,9 @@ export default class HomeScreen extends Component {
                       </Button>
                       <Button onPress={this._deletePhoto}>
                         <Icon name="trash" />
+                      </Button>
+                      <Button onPress={this._flagPhoto}>
+                        <Icon name="flag" />
                       </Button>
                   </FooterTab>
               </Footer>
