@@ -48,19 +48,17 @@ export default class SelectMode extends Component {
     return selected;
   }
   
-  // TODO: get working
   _deleteSelected() {
     this.state.selected.forEach((photo) => {
       console.log('Delete this photo please: ', photo);
-    //   axios.delete(helpers.HOST_URL + 'api/photos', {data: {userId: this.props.id, photo: photo}})
-    //     .then(response => { this.props.refresh(); }); 
+      axios.delete(helpers.HOST_URL + 'api/photos', {data: {userId: this.props.id, photo: photo}})
+        .then(response => { this.props.refresh(); }); 
     });
   }
 
-  // TODO: get working
   _flagSelected() {
     console.log('flag these: ', this.state.selected);
-    // this.state.selected.forEach(this.props.flag);
+    this.state.selected.forEach(this.props.flag);
   }
   // TODO: Alert when delete is clicked - are you sure you want to delete?
   render() {
@@ -93,10 +91,10 @@ export default class SelectMode extends Component {
         </Content>
         <Footer>
           <FooterTab>
-            <Button onPress={this.props.delete}>
+            <Button onPress={this._deleteSelected}>
               <Icon name="trash" />
             </Button>
-            <Button onPress={this.props.flag}>
+            <Button onPress={this._flagSelected}>
               <Icon name="flag" />
             </Button>
           </FooterTab>
