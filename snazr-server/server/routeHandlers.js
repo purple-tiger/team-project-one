@@ -237,7 +237,7 @@ const photo = {
   },
   delete: (req, res) => {
     // photoObj: { userId, requestId, cloudStorageUrl }
-    let { userId, photoObj } = req.body;
+    let { userId, photo } = req.body;
     let model = {
       userId
     };
@@ -248,7 +248,7 @@ const photo = {
         let { photos } = item;
         let removed;
         for (let i = 0; i < photos.length; i++) {
-          if (photos[i].cloudStorageUrl === photoObj.cloudStorageUrl) {
+          if (photos[i].cloudStorageUrl === photo.cloudStorageUrl) {
             removed = photos.splice(i, 1);
           }
         }
