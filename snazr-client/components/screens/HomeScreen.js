@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Alert, View, Switch, AsyncStorage, Image, Dimensions, TouchableWithoutFeedback, DeviceEventEmitter, AppRegistry } from 'react-native';
 import Router from '../navigation/Router';
+import SelectMode from './SelectMode';
 import { Container, Header, Title, Content, Footer, FooterTab, Button, Left, Right, Body, Icon , Text, ListItem, Card, CardItem } from 'native-base';
 import Expo from 'expo';
 import axios from 'axios';
@@ -18,20 +19,17 @@ export default class HomeScreen extends Component {
       pictures: [],
       notification: {}, 
       showCard: false,
-      // when this is set (when user touches photo), it will be a photo object:
-      // { userId, requestId, and cloudStorageUrl}
-      photo: undefined,
-      selecting: false,
-      selected: [] 
+      photo: undefined, // { userId, requestId, and cloudStorageUrl}
+      selecting: false
     }
 
     this._getInitialToggle();
     this._getPictures();
+    this._toggleSelectMode = this._toggleSelectMode.bind(this);
     this._refresh = this._refresh.bind(this);
     this._goToMap = this._goToMap.bind(this);
     this._done = this._done.bind(this);
     this._deletePhoto = this._deletePhoto.bind(this);
-    this._checkIfSelected = this._checkIfSelected.bind(this);
     this._flagPhoto = this._flagPhoto.bind(this);
     this._downloadPhoto = this._downloadPhoto.bind(this);
     // this._handleNotification = this._handleNotification.bind(this);
@@ -99,10 +97,19 @@ export default class HomeScreen extends Component {
          });
   }
 
-// TODO: Implement blocking backability and uncomment out those options.
-  _flagPhoto() {
-    console.log('Flag this photo please!!!!!!!!!!!!!!!!:', this.state.photo);
-    axios.post(helpers.HOST_URL + 'api/flagged_users', this.state.photo)
+  _toggleSelectMode() {
+    console.log('toggling select mode.');
+    console.log('BEFORE: ', this.state.selecting);
+    this.setState({selecting: false}, (err) => {
+      if (err) console.log(err);
+      else console.log('AFTER: ', this.state.selecting)
+    }
+    );
+  }
+// TODO: Implement blocking cability and uncomment out those options.
+  _flagPhoto(photo) {
+    console.log('Flag this photo please!!!!!!!!!!!!!!!!:', photo);
+    axios.post(helpers.HOST_URL + 'api/flagged_users', photo)
       .then(response => {
         console.log('inside axios post .then')
         Alert.alert(
@@ -174,40 +181,8 @@ export default class HomeScreen extends Component {
     this.props.navigator.push(Router.getRoute('settings'));
   }
 
-// This is very slow. Should be refactored.
-  _toggleSelect(photo) {
-    let removed;
-    for (let i = 0; i < this.state.selected.length; i++) {
-      if (this.state.selected[i].cloudStorageUrl === photo.cloudStorageUrl) {
-        let original = this.state.selected;
-        this.setState({selected: [...original.slice(0,i), ...original.slice(i+1)]});
-        removed = true;
-        break;
-      }
-    }
-    if (!removed) {
-      this.setState({selected: [...this.state.selected, photo]});
-    }
-  }
-
-  _checkIfSelected(photo) {
-    let selected = false;
-    for(let i = 0; i < this.state.selected.length; i++) {
-      if(this.state.selected[i].cloudStorageUrl === photo.cloudStorageUrl) {
-        selected = true;
-        break;
-      }
-    }
-    console.log('photo is currently selected: ', selected);
-    return selected;
-  }
-
   _goToImg(photo) {
-    if (this.state.selecting) {
-      this._toggleSelect(photo);
-    } else {
       this.setState({photo: photo});
-    }
   }
 
   _refresh() {
@@ -240,8 +215,8 @@ export default class HomeScreen extends Component {
     // })
   }
 
+// TODO: Move first return into its own ImageDetail component
   render() {
-
     if(this.state.photo) {
       return (
           <Container>
@@ -266,10 +241,10 @@ export default class HomeScreen extends Component {
                       <Button onPress={this._downloadPhoto}>
                         <Icon name="download" />
                       </Button>
-                      <Button onPress={this._deletePhoto}>
+                      <Button onPress={() => this._deletePhoto()}>
                         <Icon name="trash" />
                       </Button>
-                      <Button onPress={this._flagPhoto}>
+                      <Button onPress={() => this._flagPhoto(this.state.photo)}>
                         <Icon name="flag" />
                       </Button>
                   </FooterTab>
@@ -277,7 +252,8 @@ export default class HomeScreen extends Component {
           </Container>
       );
     } else {
-      return(
+      return (this.state.selecting) ? 
+          <SelectMode pictures={this.state.pictures} id={this.state.id} refresh={this._refresh} flag={this._flagPhoto} refresh={this._refresh} backToHome={this._toggleSelectMode} /> :
           <Container>
             <Header style={{backgroundColor: '#BA90FF'}}>
               <Left>
@@ -296,10 +272,8 @@ export default class HomeScreen extends Component {
               {/*{this.state.showCard ? <Card><CardItem><Body><Text>{this.state.notification.data}</Text></Body></CardItem></Card> : <Text></Text> }*/}
               <View style={{flex: 1, flexDirection: 'row', flexWrap: 'wrap'}}>
                 {this.state.pictures.map((photo, index) => 
-                  <TouchableWithoutFeedback key={index} onPress={this._goToImg.bind(this, photo)} onLongPress={()=> { console.log('that was a looong press!'); this.setState({selecting: !this.state.selecting})}}>
-                    <Image source={{uri: photo.cloudStorageUrl}} style={{height: Dimensions.get('window').width/3.1, width: Dimensions.get('window').width/3.1, margin: 1}}>
-                      {this.state.selecting && <CheckBox checked={this._checkIfSelected(photo)} onChange={(checked) => console.log('I am checked', checked)}/>}
-                    </Image>
+                  <TouchableWithoutFeedback key={index} onPress={this._goToImg.bind(this, photo)} onLongPress= {() => this.setState({selecting: true})}>
+                    <Image source={{uri: photo.cloudStorageUrl}} style={{height: Dimensions.get('window').width/3.1, width: Dimensions.get('window').width/3.1, margin: 1}}/>
                   </TouchableWithoutFeedback> )}
               </View>
             </Content>
@@ -317,7 +291,6 @@ export default class HomeScreen extends Component {
               </FooterTab>
             </Footer>
         </Container>  
-      )
     }
   }
 }
