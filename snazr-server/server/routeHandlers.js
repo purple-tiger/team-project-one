@@ -1,6 +1,7 @@
 const { client } = require('./cache/redis.js');
 const User = require('./models/users');
 const Flag = require('./models/flags');
+const handlerHelpers = require('./handlerHelpers');
 const mongoose = require('mongoose');
 const push = require('./pushNotification.js');
 const Promise = require('bluebird');
@@ -78,6 +79,8 @@ const token = {
   }
 };
 
+// TODO: Refactor to deal with array of photos to flag
+// (each photo could potentially have different userId, ie diff photographer)
 const flag = {
   get: (req, res) => {
     Flag.find((err, users) => {
@@ -167,6 +170,7 @@ const toggle = {
 
 const photo = {
   get: (req, res) => {
+    console.log('get photo request received');
     let { userId } = req.query; 
     let model = { userId };
     User.find(model, function(err, result) {
@@ -235,37 +239,13 @@ const photo = {
             
     });
   },
+  // the req body may be a photo object:
+  // { userId, requestId, cloudStorageUrl }
+  // or an array of photo objects
   delete: (req, res) => {
-    // photoObj: { userId, requestId, cloudStorageUrl }
-    let { userId, photoObj } = req.body;
-    let model = {
-      userId
-    };
-    User.find(model, function(err, result) {
-      if (err) { console.log('trying to delete photo, but got err ', err); }
-      if (result.length > 0) {
-        let item = result[0];
-        let { photos } = item;
-        let removed;
-        for (let i = 0; i < photos.length; i++) {
-          if (photos[i].cloudStorageUrl === photoObj.cloudStorageUrl) {
-            removed = photos.splice(i, 1);
-          }
-        }
-        console.log('we removed photo: ', removed);
-        item.save()
-                  .then(function(result) {
-                    console.log('modified photos ');
-                    res.send('deleted photo 1');
-                  })
-                  .catch(function(err) {
-                    console.log('did NOT delete photo');
-                    res.send('photo did not save, err!');
-                  });
-      } else {
-        res.send('did not find user');
-      }
-    });
+    const { userId, photo } = req.body;
+    const photosToDelete = Array.isArray(photo) ? photo : [photo]; 
+    handlerHelpers.deletePhotosFromDb(userId, photosToDelete, res); 
   }
 };
 

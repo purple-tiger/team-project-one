@@ -1,11 +1,14 @@
 import React, { Component } from 'react';
 import { Alert, View, Switch, AsyncStorage, Image, Dimensions, TouchableWithoutFeedback, DeviceEventEmitter, AppRegistry } from 'react-native';
 import Router from '../navigation/Router';
+import SelectMode from './SelectMode';
 import { Container, Header, Title, Content, Footer, FooterTab, Button, Left, Right, Body, Icon , Text, ListItem, Card, CardItem } from 'native-base';
 import Expo from 'expo';
 import axios from 'axios';
 import helpers from '../config/util';
 import registerForPushNotificationsAsync from '../config/getToken';
+import CheckBox from 'react-native-checkbox';
+
 // import RNFetchBlob from 'react-native-fetch-blob';
 
 export default class HomeScreen extends Component {
@@ -16,13 +19,13 @@ export default class HomeScreen extends Component {
       pictures: [],
       notification: {}, 
       showCard: false,
-      // when this is set (when user touches photo), it will be a photo object:
-      // { userId, requestId, and cloudStorageUrl}
-      photo: undefined 
+      photo: undefined, // { userId, requestId, and cloudStorageUrl}
+      selecting: false
     }
 
     this._getInitialToggle();
     this._getPictures();
+    this._toggleSelectMode = this._toggleSelectMode.bind(this);
     this._refresh = this._refresh.bind(this);
     this._goToMap = this._goToMap.bind(this);
     this._done = this._done.bind(this);
@@ -81,24 +84,40 @@ export default class HomeScreen extends Component {
     axios.get(helpers.HOST_URL + 'api/photos', obj )
          .then((resp) => {
            console.log('------------------ photo:', resp.data[0].photos[0]);
-           this.setState({pictures: resp.data[0].photos});
+           this.setState({pictures: resp.data[0].photos}, (err) => {
+             if (err) {
+               console.log('error getting pictures:', err)
+             } else {
+               console.log('pictures state set:', this.state.pictures);
+             }
+            });
          })
          .catch((err) => {
            console.log(err);
          });
   }
 
-  _flagPhoto() {
-    console.log('Flag this photo please!!!!!!!!!!!!!!!!:', this.state.photo);
-    axios.post(helpers.HOST_URL + 'api/flagged_users', this.state.photo)
+  _toggleSelectMode() {
+    console.log('toggling select mode.');
+    console.log('BEFORE: ', this.state.selecting);
+    this.setState({selecting: false}, (err) => {
+      if (err) console.log(err);
+      else console.log('AFTER: ', this.state.selecting)
+    }
+    );
+  }
+// TODO: Implement blocking cability and uncomment out those options.
+  _flagPhoto(photo) {
+    console.log('Flag this photo please!!!!!!!!!!!!!!!!:', photo);
+    axios.post(helpers.HOST_URL + 'api/flagged_users', photo)
       .then(response => {
         console.log('inside axios post .then')
         Alert.alert(
           'flagged',
           'This user and photo have been flagged for review',
           [
-            {text: 'Block user', onPress: () => console.log('User wants to block this photographer')},
-            {text: 'Info on blocking', onPress: () => console.log('User wants to know more about blocking')},
+            // {text: 'Block user', onPress: () => console.log('User wants to block this photographer')},
+            // {text: 'Info on blocking', onPress: () => console.log('User wants to know more about blocking')},
             {text: 'OK', onPress: () => console.log('OK Pressed')},
           ],
           { cancelable: false }
@@ -163,9 +182,7 @@ export default class HomeScreen extends Component {
   }
 
   _goToImg(photo) {
-    // console.log('hiii', photo);
-    this.setState({photo: photo});
-    // console.log('other is', e._targetInst._currentElement)
+      this.setState({photo: photo});
   }
 
   _refresh() {
@@ -198,8 +215,8 @@ export default class HomeScreen extends Component {
     // })
   }
 
+// TODO: Move first return into its own ImageDetail component
   render() {
-
     if(this.state.photo) {
       return (
           <Container>
@@ -224,10 +241,10 @@ export default class HomeScreen extends Component {
                       <Button onPress={this._downloadPhoto}>
                         <Icon name="download" />
                       </Button>
-                      <Button onPress={this._deletePhoto}>
+                      <Button onPress={() => this._deletePhoto()}>
                         <Icon name="trash" />
                       </Button>
-                      <Button onPress={this._flagPhoto}>
+                      <Button onPress={() => this._flagPhoto(this.state.photo)}>
                         <Icon name="flag" />
                       </Button>
                   </FooterTab>
@@ -235,7 +252,8 @@ export default class HomeScreen extends Component {
           </Container>
       );
     } else {
-      return(
+      return (this.state.selecting) ? 
+          <SelectMode pictures={this.state.pictures} id={this.state.id} refresh={this._refresh} flag={this._flagPhoto} refresh={this._refresh} backToHome={this._toggleSelectMode} /> :
           <Container>
             <Header style={{backgroundColor: '#BA90FF'}}>
               <Left>
@@ -253,7 +271,10 @@ export default class HomeScreen extends Component {
             <Content>
               {/*{this.state.showCard ? <Card><CardItem><Body><Text>{this.state.notification.data}</Text></Body></CardItem></Card> : <Text></Text> }*/}
               <View style={{flex: 1, flexDirection: 'row', flexWrap: 'wrap'}}>
-                {this.state.pictures.map((photo, index) => <TouchableWithoutFeedback key={index} onPressIn={this._goToImg.bind(this, photo)}><Image source={{uri: photo.cloudStorageUrl}} style={{height: Dimensions.get('window').width/3.1, width: Dimensions.get('window').width/3.1, margin: 1}}/></TouchableWithoutFeedback> )}
+                {this.state.pictures.map((photo, index) => 
+                  <TouchableWithoutFeedback key={index} onPress={this._goToImg.bind(this, photo)} onLongPress= {() => this.setState({selecting: true})}>
+                    <Image source={{uri: photo.cloudStorageUrl}} style={{height: Dimensions.get('window').width/3.1, width: Dimensions.get('window').width/3.1, margin: 1}}/>
+                  </TouchableWithoutFeedback> )}
               </View>
             </Content>
             <Footer>
@@ -270,7 +291,6 @@ export default class HomeScreen extends Component {
               </FooterTab>
             </Footer>
         </Container>  
-      )
     }
   }
 }
